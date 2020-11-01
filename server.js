@@ -27,7 +27,8 @@ const exerciseSchema = new mongoose.Schema({
   description: String,
   duration: {
     type: Number,
-    min: 0
+    min: 0,
+    required: true
   },
   date: {
     type: Date,
@@ -86,17 +87,32 @@ app.post('/api/exercise/add', async function(req, res) {
     user = await User.findById(req.body.userId);
   } catch(err) {
     res.sendStatus(404);
+    return;
   }
-  user.log.push(new Exercise({
+  let date = new Date(req.body.date);
+  if(req.body.date && isNaN(date.getTime())) {
+    res.sendStatus(400);
+    return;
+  }
+  let duration = parseInt(req.body.duration, 10);
+  if(isNaN(duration)) {
+    res.sendStatus(400);
+    return;
+  }
+  let exercise = new Exercise({
     description: req.body.description,
-    duration: parseInt(req.body.duration, 10),
-    date: new Date(req.body.date)
-  }));
+    duration
+  });
+  if(req.body.date) {
+    exercise.date = date;
+  }
+  user.log.push(exercise);
   let savedUser;
   try {
     savedUser = await user.save();
   } catch(err) {
     res.sendStatus(500);
+    return;
   }
   res.json(formatUser(savedUser, true));
 })
